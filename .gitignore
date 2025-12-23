@@ -1,0 +1,27 @@
+# Android Studio
+*.iml
+.gradle
+/local.properties
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Сборочные файлы и папки
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Файлы macOS
+.DS_Store
+
+# --- Конфигурационные файлы ---
+
+# Google Services (Firebase) configuration file
+app/google-services.json
+
+# Custom App Configuration File
+app/src/main/java/com/example/FamilyHelper/config/AppConfig.java
