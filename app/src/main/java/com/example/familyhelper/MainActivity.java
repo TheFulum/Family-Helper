@@ -26,6 +26,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.familyhelper.data.models.Comment;
 import com.example.familyhelper.data.models.Task;
 import com.example.familyhelper.data.models.User;
+import com.example.familyhelper.ui.activities.CreateFamilyActivity;
+import com.example.familyhelper.ui.activities.FamilyActivity;
+import com.example.familyhelper.ui.activities.InvitesActivity;
 import com.example.familyhelper.ui.activities.LoginActivity;
 import com.example.familyhelper.ui.activities.ProfileActivity;
 import com.example.familyhelper.ui.adapters.CommentAdapter;
@@ -50,14 +53,15 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
     private CalendarView calendarView;
     private RecyclerView tasksRecyclerView;
     private FloatingActionButton fabAddTask;
-    private ImageButton btnProfile;
+    private ImageButton btnProfile, btnFamily, btnInvites;
     private TextView tvSelectedDate;
+    private View inviteBadge;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private String currentUserId, selectedDate, currentFamilyId;
     private List<Task> taskList;
     private TaskAdapter taskAdapter;
-    private ListenerRegistration taskListener;
+    private ListenerRegistration taskListener, invitesListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,11 +73,8 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         if (mAuth.getCurrentUser() == null) { finish(); return; }
         currentUserId = mAuth.getCurrentUser().getUid();
 
-        calendarView = findViewById(R.id.calendarView);
-        tasksRecyclerView = findViewById(R.id.tasksRecyclerView);
-        fabAddTask = findViewById(R.id.fabAddTask);
-        btnProfile = findViewById(R.id.btnProfile);
-        tvSelectedDate = findViewById(R.id.tvSelectedDate);
+        initViews();
+        setupListeners();
 
         tasksRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         taskList = new ArrayList<>();
@@ -83,7 +84,24 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         selectedDate = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(new Date());
         tvSelectedDate.setText("Задачи на " + selectedDate);
 
+        loadUser();
+    }
+
+    private void initViews() {
+        calendarView = findViewById(R.id.calendarView);
+        tasksRecyclerView = findViewById(R.id.tasksRecyclerView);
+        fabAddTask = findViewById(R.id.fabAddTask);
+        btnProfile = findViewById(R.id.btnProfile);
+        btnFamily = findViewById(R.id.btnFamily);
+        btnInvites = findViewById(R.id.btnInvites);
+        tvSelectedDate = findViewById(R.id.tvSelectedDate);
+        inviteBadge = findViewById(R.id.inviteBadge);
+    }
+
+    private void setupListeners() {
         btnProfile.setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
+        btnFamily.setOnClickListener(v -> openFamilyActivity());
+        btnInvites.setOnClickListener(v -> startActivity(new Intent(this, InvitesActivity.class)));
         fabAddTask.setOnClickListener(v -> showAddTaskDialog());
 
         calendarView.setOnDateChangeListener((v, y, m, d) -> {
@@ -96,8 +114,6 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
                 Log.d("MainActivity", "FamilyId not loaded yet, skipping loadTasks");
             }
         });
-
-        loadUser();
     }
 
     @Override
@@ -111,6 +127,12 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadUser();
+    }
+
     private void loadUser() {
         db.collection("users").document(currentUserId).get().addOnSuccessListener(doc -> {
             User u = doc.toObject(User.class);
@@ -118,13 +140,43 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
                 currentFamilyId = u.getFamilyId();
                 if (TextUtils.isEmpty(currentFamilyId)) {
                     Log.d("MainActivity", "FamilyId is empty or null");
-                    Toast.makeText(this, "Family ID not set", Toast.LENGTH_SHORT).show();
                 } else {
                     loadTasks();
                     checkBirthdays();
                 }
+                checkPendingInvites();
             }
         }).addOnFailureListener(e -> Log.e("MainActivity", "Error loading user: " + e.getMessage()));
+    }
+
+    private void openFamilyActivity() {
+        if (TextUtils.isEmpty(currentFamilyId)) {
+            startActivity(new Intent(this, CreateFamilyActivity.class));
+        } else {
+            startActivity(new Intent(this, FamilyActivity.class));
+        }
+    }
+
+    private void checkPendingInvites() {
+        if (invitesListener != null) {
+            invitesListener.remove();
+        }
+
+        invitesListener = db.collection("familyInvites")
+                .whereEqualTo("toUserId", currentUserId)
+                .whereEqualTo("status", "pending")
+                .addSnapshotListener((value, e) -> {
+                    if (e != null || value == null) {
+                        inviteBadge.setVisibility(View.GONE);
+                        return;
+                    }
+
+                    if (value.size() > 0) {
+                        inviteBadge.setVisibility(View.VISIBLE);
+                    } else {
+                        inviteBadge.setVisibility(View.GONE);
+                    }
+                });
     }
 
     private void loadTasks() {
@@ -168,8 +220,11 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
                     StringBuilder alert = new StringBuilder();
                     for (QueryDocumentSnapshot doc : query) {
                         User u = doc.toObject(User.class);
-                        if (u != null && u.getBirthday() != null && u.getBirthday().substring(0, 5).equals(today)) {
-                            alert.append("День рождения у ").append(u.getName()).append("! ");
+                        if (u != null && u.getBirthday() != null && u.getBirthday().length() >= 5) {
+                            String userBirthday = u.getBirthday().substring(0, 5);
+                            if (userBirthday.equals(today)) {
+                                alert.append("День рождения у ").append(u.getName()).append("! ");
+                            }
                         }
                     }
                     View birthdayCard = findViewById(R.id.birthdayCard);
@@ -184,6 +239,11 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
     }
 
     private void showAddTaskDialog() {
+        if (TextUtils.isEmpty(currentFamilyId)) {
+            Toast.makeText(this, "Сначала создайте или вступите в семью", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         View v = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
         EditText etT = v.findViewById(R.id.etTaskTitle);
         EditText etD = v.findViewById(R.id.etTaskDesc);
@@ -200,12 +260,21 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         sP.setAdapter(new PriorityAdapter(this, items));
 
         new AlertDialog.Builder(this).setView(v).setPositiveButton("Создать", (d, w) -> {
-            String title = etT.getText().toString();
-            if (title.isEmpty()) return;
+            String title = etT.getText().toString().trim();
+            if (title.isEmpty()) {
+                Toast.makeText(this, "Введите название задачи", Toast.LENGTH_SHORT).show();
+                return;
+            }
             Task task = new Task(title, etD.getText().toString(), sA.getSelectedItem().toString(),
                     sP.getSelectedItemPosition(), selectedDate, currentFamilyId, currentUserId);
-            db.collection("tasks").add(task);
-        }).show();
+            db.collection("tasks").add(task)
+                    .addOnSuccessListener(docRef -> {
+                        Toast.makeText(this, "Задача создана", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Ошибка создания задачи", Toast.LENGTH_SHORT).show();
+                    });
+        }).setNegativeButton("Отмена", null).show();
     }
 
     @Override
@@ -292,17 +361,50 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         dialog.setOnDismissListener(d -> commentListener.remove());
     }
 
-    private static class PriorityItem { String l; int c; PriorityItem(String l, int c) {this.l=l; this.c=c;} }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (taskListener != null) taskListener.remove();
+        if (invitesListener != null) invitesListener.remove();
+    }
+
+    private static class PriorityItem {
+        String l;
+        int c;
+        PriorityItem(String l, int c) {
+            this.l=l;
+            this.c=c;
+        }
+    }
+
     private class PriorityAdapter extends ArrayAdapter<PriorityItem> {
-        PriorityAdapter(Context c, List<PriorityItem> i) { super(c, 0, i); }
-        @NonNull @Override public View getView(int p, View v, ViewGroup g) { return getPView(p, v, g); }
-        @Override public View getDropDownView(int p, View v, ViewGroup g) { return getPView(p, v, g); }
+        PriorityAdapter(Context c, List<PriorityItem> i) {
+            super(c, 0, i);
+        }
+
+        @NonNull
+        @Override
+        public View getView(int p, View v, ViewGroup g) {
+            return getPView(p, v, g);
+        }
+
+        @Override
+        public View getDropDownView(int p, View v, ViewGroup g) {
+            return getPView(p, v, g);
+        }
+
         private View getPView(int p, View v, ViewGroup g) {
-            if (v == null) v = LayoutInflater.from(getContext()).inflate(R.layout.item_priority, g, false);
+            if (v == null) {
+                v = LayoutInflater.from(getContext()).inflate(R.layout.item_priority, g, false);
+            }
             PriorityItem item = getItem(p);
-            ((TextView)v.findViewById(R.id.priorityTextView)).setText(item.l);
-            GradientDrawable gd = new GradientDrawable(); gd.setShape(GradientDrawable.OVAL); gd.setColor(item.c);
-            v.findViewById(R.id.priorityColorView).setBackground(gd);
+            if (item != null) {
+                ((TextView)v.findViewById(R.id.priorityTextView)).setText(item.l);
+                GradientDrawable gd = new GradientDrawable();
+                gd.setShape(GradientDrawable.OVAL);
+                gd.setColor(item.c);
+                v.findViewById(R.id.priorityColorView).setBackground(gd);
+            }
             return v;
         }
     }
