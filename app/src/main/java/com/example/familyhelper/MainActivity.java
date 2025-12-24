@@ -300,26 +300,26 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
         TextView tvDesc = v.findViewById(R.id.tvTaskDesc);
         TextView tvArea = v.findViewById(R.id.tvTaskArea);
         TextView tvPriority = v.findViewById(R.id.tvTaskPriority);
-        CheckBox cbCompleted = v.findViewById(R.id.cbTaskCompleted);
         RecyclerView rvComments = v.findViewById(R.id.rvComments);
         EditText etNewComment = v.findViewById(R.id.etNewComment);
         Button btnAddComment = v.findViewById(R.id.btnAddComment);
 
         tvTitle.setText(task.getTitle());
         tvDesc.setText(task.getDescription());
+
+        // Форматируем категорию
+        String[] categories = {"Дом", "Еда", "Работа", "Дети"};
         tvArea.setText(task.getArea());
-        tvPriority.setText("Приоритет: " + task.getPriority());
 
-        boolean isCompleted = task.isCompleted();
-        cbCompleted.setChecked(isCompleted);
-        boolean canEditStatus = !isCompleted || (task.getCompletedBy() != null && task.getCompletedBy().equals(currentUserId));
-        cbCompleted.setEnabled(canEditStatus);
+        // Форматируем приоритет
+        String[] priorities = {"Низкий", "Средний", "Высокий", "Критический"};
+        int priorityIndex = task.getPriority();
+        if (priorityIndex >= 0 && priorityIndex < priorities.length) {
+            tvPriority.setText(priorities[priorityIndex]);
+        } else {
+            tvPriority.setText("Неизвестно");
+        }
 
-        cbCompleted.setOnCheckedChangeListener((buttonView, checked) -> {
-            if (canEditStatus) {
-                onTaskStatusChanged(task, checked);
-            }
-        });
 
         List<Comment> comments = new ArrayList<>();
         CommentAdapter commentAdapter = new CommentAdapter(comments);
@@ -355,9 +355,10 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.OnTas
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(v)
-                .setPositiveButton("Закрыть", null)
-                .show();
+                .setNegativeButton("Закрыть", null)
+                .create();
 
+        dialog.show();
         dialog.setOnDismissListener(d -> commentListener.remove());
     }
 
