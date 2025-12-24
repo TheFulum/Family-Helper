@@ -24,7 +24,6 @@ public class RegisterActivity extends AppCompatActivity {
     private com.google.android.material.textfield.TextInputEditText etUsername, etEmail, etPassword, etName;
     private Button btnRegister;
     private TextView tvLogin;
-
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
