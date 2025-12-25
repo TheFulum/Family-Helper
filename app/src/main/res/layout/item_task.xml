@@ -47,12 +47,45 @@
                 android:paddingVertical="2dp"
                 android:layout_marginTop="4dp"/>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <TextView
+                    android:id="@+id/tvCreatedBy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="username"
+                    android:textSize="11sp"
+                    android:textColor="#999"
+                    android:textStyle="italic"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textSize="11sp"
+                    android:textColor="#999"/>
+
+                <TextView
+                    android:id="@+id/tvCreatedTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10:30"
+                    android:textSize="11sp"
+                    android:textColor="#999"/>
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tvClosedLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Задача закрыта"
                 android:textColor="#FF0000"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
                 android:visibility="gone"/>
         </LinearLayout>
 

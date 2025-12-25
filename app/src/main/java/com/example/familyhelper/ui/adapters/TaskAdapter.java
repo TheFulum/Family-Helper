@@ -11,13 +11,18 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.familyhelper.R;
 import com.example.familyhelper.data.models.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
     private List<Task> taskList;
     private OnTaskClickListener listener;
     private String currentUserId;
+    private FirebaseFirestore db;
 
     public interface OnTaskClickListener {
         void onTaskClick(Task task);
@@ -28,6 +33,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         this.taskList = taskList;
         this.listener = listener;
         this.currentUserId = currentUserId;
+        this.db = FirebaseFirestore.getInstance();
     }
 
     @NonNull
@@ -49,7 +55,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     class TaskViewHolder extends RecyclerView.ViewHolder {
-        TextView title, area;
+        TextView title, area, createdBy, createdTime;
         CheckBox completed;
         ImageView priority;
 
@@ -57,6 +63,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             super(itemView);
             title = itemView.findViewById(R.id.tvTitle);
             area = itemView.findViewById(R.id.tvArea);
+            createdBy = itemView.findViewById(R.id.tvCreatedBy);
+            createdTime = itemView.findViewById(R.id.tvCreatedTime);
             completed = itemView.findViewById(R.id.cbCompleted);
             priority = itemView.findViewById(R.id.ivPriority);
         }
@@ -65,7 +73,15 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             title.setText(task.getTitle());
             area.setText(task.getArea());
 
+            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            String time = timeFormat.format(new Date(task.getCreatedAt()));
+            createdTime.setText(time);
+
+            loadUserName(task.getCreatedBy());
+
             boolean isCompleted = task.isCompleted();
+
+            completed.setOnCheckedChangeListener(null);
             completed.setChecked(isCompleted);
 
             if (isCompleted) {
@@ -103,6 +119,29 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             });
 
             itemView.setOnClickListener(v -> listener.onTaskClick(task));
+        }
+
+        private void loadUserName(String userId) {
+            db.collection("users").document(userId).get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            String username = doc.getString("username");
+                            String name = doc.getString("name");
+
+                            if (username != null && !username.isEmpty()) {
+                                createdBy.setText("@" + username);
+                            } else if (name != null && !name.isEmpty()) {
+                                createdBy.setText(name);
+                            } else {
+                                createdBy.setText("Пользователь");
+                            }
+                        } else {
+                            createdBy.setText("Пользователь");
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        createdBy.setText("Пользователь");
+                    });
         }
     }
 }

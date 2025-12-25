@@ -33,7 +33,7 @@ public class FamilyActivity extends AppCompatActivity {
 
     private TextView tvFamilyName, tvMembersCount;
     private RecyclerView rvMembers, rvPendingInvites;
-    private Button btnInviteMember, btnLeaveFamily;
+    private Button btnInviteMember, btnLeaveFamily, btnDeleteFamily;
     private ImageButton btnBack;
     private View pendingInvitesSection;
 
@@ -75,14 +75,24 @@ public class FamilyActivity extends AppCompatActivity {
         tvMembersCount = findViewById(R.id.tvMembersCount);
         btnInviteMember = findViewById(R.id.btnInviteMember);
         btnLeaveFamily = findViewById(R.id.btnLeaveFamily);
+        btnDeleteFamily = findViewById(R.id.btnDeleteFamily);
         rvMembers = findViewById(R.id.rvMembers);
         rvPendingInvites = findViewById(R.id.rvPendingInvites);
         pendingInvitesSection = findViewById(R.id.pendingInvitesSection);
 
         membersList = new ArrayList<>();
-        memberAdapter = new FamilyMemberAdapter(membersList, user -> {
-            showUserProfile(user);
-        });
+        memberAdapter = new FamilyMemberAdapter(membersList, "", currentUserId,
+                new FamilyMemberAdapter.OnMemberClickListener() {
+                    @Override
+                    public void onMemberClick(User user) {
+                        showUserProfile(user);
+                    }
+
+                    @Override
+                    public void onMemberOptionsClick(User user) {
+                        showMemberOptionsDialog(user);
+                    }
+                });
         rvMembers.setLayoutManager(new LinearLayoutManager(this));
         rvMembers.setAdapter(memberAdapter);
 
@@ -98,6 +108,7 @@ public class FamilyActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         btnInviteMember.setOnClickListener(v -> showInviteDialog());
         btnLeaveFamily.setOnClickListener(v -> showLeaveFamilyDialog());
+        btnDeleteFamily.setOnClickListener(v -> showDeleteFamilyDialog());
     }
 
     private void loadFamilyData() {
@@ -133,10 +144,29 @@ public class FamilyActivity extends AppCompatActivity {
 
                         if (currentFamily.isCreator(currentUserId)) {
                             pendingInvitesSection.setVisibility(View.VISIBLE);
+                            btnDeleteFamily.setVisibility(View.VISIBLE);
+                            btnLeaveFamily.setVisibility(View.GONE);
                             loadPendingInvites();
                         } else {
                             pendingInvitesSection.setVisibility(View.GONE);
+                            btnDeleteFamily.setVisibility(View.GONE);
+                            btnLeaveFamily.setVisibility(View.VISIBLE);
                         }
+
+                        memberAdapter = new FamilyMemberAdapter(membersList,
+                                currentFamily.getCreatorId(), currentUserId,
+                                new FamilyMemberAdapter.OnMemberClickListener() {
+                                    @Override
+                                    public void onMemberClick(User user) {
+                                        showUserProfile(user);
+                                    }
+
+                                    @Override
+                                    public void onMemberOptionsClick(User user) {
+                                        showMemberOptionsDialog(user);
+                                    }
+                                });
+                        rvMembers.setAdapter(memberAdapter);
 
                         loadMembers();
                     }
@@ -150,9 +180,12 @@ public class FamilyActivity extends AppCompatActivity {
         List<String> memberIds = currentFamily.getMemberIds();
 
         if (memberIds.isEmpty()) {
-            memberAdapter.notifyDataSetChanged();
+            memberAdapter.updateMembers(membersList);
             return;
         }
+
+        final int[] loadedCount = {0};
+        final int totalCount = memberIds.size();
 
         for (String memberId : memberIds) {
             db.collection("users").document(memberId).get()
@@ -160,7 +193,12 @@ public class FamilyActivity extends AppCompatActivity {
                         User user = doc.toObject(User.class);
                         if (user != null) {
                             membersList.add(user);
-                            memberAdapter.notifyDataSetChanged();
+                        }
+
+                        loadedCount[0]++;
+
+                        if (loadedCount[0] == totalCount) {
+                            memberAdapter.updateMembers(membersList);
                         }
                     });
         }
@@ -182,6 +220,134 @@ public class FamilyActivity extends AppCompatActivity {
                         }
                     }
                     inviteAdapter.notifyDataSetChanged();
+                });
+    }
+
+    private void showMemberOptionsDialog(User user) {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_member_options, null);
+
+        TextView tvMemberName = dialogView.findViewById(R.id.tvMemberName);
+        Button btnTransferOwnership = dialogView.findViewById(R.id.btnTransferOwnership);
+        Button btnRemoveMember = dialogView.findViewById(R.id.btnRemoveMember);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        String displayName = user.getName() != null ? user.getName() :
+                ("@" + (user.getUsername() != null ? user.getUsername() : "user"));
+        tvMemberName.setText("Управление: " + displayName);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        btnTransferOwnership.setOnClickListener(v -> {
+            dialog.dismiss();
+            showTransferOwnershipConfirmation(user);
+        });
+
+        btnRemoveMember.setOnClickListener(v -> {
+            dialog.dismiss();
+            showRemoveMemberConfirmation(user);
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void showTransferOwnershipConfirmation(User newOwner) {
+        String displayName = newOwner.getName() != null ? newOwner.getName() :
+                ("@" + (newOwner.getUsername() != null ? newOwner.getUsername() : "user"));
+
+        new AlertDialog.Builder(this)
+                .setTitle("Передать права главы?")
+                .setMessage("Вы передаете права главы семьи пользователю " + displayName +
+                        ". После этого вы не сможете управлять семьей. Продолжить?")
+                .setPositiveButton("Да, передать", (dialog, which) -> transferOwnership(newOwner))
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void transferOwnership(User newOwner) {
+        db.collection("families").document(currentFamilyId)
+                .update("creatorId", newOwner.getUserId())
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Права главы переданы", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка передачи прав", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void showRemoveMemberConfirmation(User member) {
+        String displayName = member.getName() != null ? member.getName() :
+                ("@" + (member.getUsername() != null ? member.getUsername() : "user"));
+
+        new AlertDialog.Builder(this)
+                .setTitle("Удалить участника?")
+                .setMessage("Вы уверены, что хотите удалить " + displayName + " из семьи?")
+                .setPositiveButton("Да, удалить", (dialog, which) -> removeMember(member))
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void removeMember(User member) {
+        currentFamily.removeMember(member.getUserId());
+
+        db.collection("families").document(currentFamilyId)
+                .update("memberIds", currentFamily.getMemberIds())
+                .addOnSuccessListener(aVoid -> {
+                    db.collection("users").document(member.getUserId())
+                            .update("familyId", null);
+
+                    Toast.makeText(this, "Участник удален из семьи", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка удаления участника", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void showDeleteFamilyDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Удалить семью?")
+                .setMessage("Вы уверены, что хотите удалить семью? Это действие нельзя отменить. " +
+                        "Все участники будут исключены из семьи.")
+                .setPositiveButton("Да, удалить", (dialog, which) -> deleteFamily())
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void deleteFamily() {
+        for (String memberId : currentFamily.getMemberIds()) {
+            db.collection("users").document(memberId)
+                    .update("familyId", null);
+        }
+
+        db.collection("tasks")
+                .whereEqualTo("familyId", currentFamilyId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        doc.getReference().delete();
+                    }
+                });
+
+        db.collection("familyInvites")
+                .whereEqualTo("familyId", currentFamilyId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        doc.getReference().delete();
+                    }
+                });
+
+        db.collection("families").document(currentFamilyId).delete()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Семья удалена", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка удаления семьи", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -321,34 +487,21 @@ public class FamilyActivity extends AppCompatActivity {
     }
 
     private void showLeaveFamilyDialog() {
-        String message = currentFamily.isCreator(currentUserId)
-                ? "Вы создатель семьи. При выходе семья будет удалена."
-                : "Вы уверены, что хотите покинуть семью?";
-
         new AlertDialog.Builder(this)
                 .setTitle("Покинуть семью")
-                .setMessage(message)
+                .setMessage("Вы уверены, что хотите покинуть семью?")
                 .setPositiveButton("Да", (dialog, which) -> leaveFamily())
                 .setNegativeButton("Нет", null)
                 .show();
     }
 
     private void leaveFamily() {
-        if (currentFamily.isCreator(currentUserId)) {
-            db.collection("families").document(currentFamilyId).delete();
+        currentFamily.removeMember(currentUserId);
+        db.collection("families").document(currentFamilyId)
+                .update("memberIds", currentFamily.getMemberIds());
 
-            for (String memberId : currentFamily.getMemberIds()) {
-                db.collection("users").document(memberId)
-                        .update("familyId", null);
-            }
-        } else {
-            currentFamily.removeMember(currentUserId);
-            db.collection("families").document(currentFamilyId)
-                    .update("memberIds", currentFamily.getMemberIds());
-
-            db.collection("users").document(currentUserId)
-                    .update("familyId", null);
-        }
+        db.collection("users").document(currentUserId)
+                .update("familyId", null);
 
         Toast.makeText(this, "Вы покинули семью", Toast.LENGTH_SHORT).show();
         finish();

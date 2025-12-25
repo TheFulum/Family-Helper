@@ -2,7 +2,12 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.FamilyHelper" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Цвет статус бара -->
+        <item name="android:statusBarColor">@android:color/white</item>
+        <!-- Делаем иконки статус бара темными (для светлого фона) -->
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <!-- Рисуем контент под системными панелями -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
     <style name="Theme.FamilyHelper" parent="Base.Theme.FamilyHelper" />
