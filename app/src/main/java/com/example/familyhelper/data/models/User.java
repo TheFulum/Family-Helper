@@ -9,6 +9,7 @@ public class User {
     private String birthday;
     private String profileImageUrl;
     private String familyId;
+    private long joinedFamilyAt;
 
     public User() {}
 
@@ -43,4 +44,7 @@ public class User {
 
     public String getFamilyId() { return familyId; }
     public void setFamilyId(String familyId) { this.familyId = familyId; }
+
+    public long getJoinedFamilyAt() { return joinedFamilyAt; }
+    public void setJoinedFamilyAt(long joinedFamilyAt) { this.joinedFamilyAt = joinedFamilyAt; }
 }

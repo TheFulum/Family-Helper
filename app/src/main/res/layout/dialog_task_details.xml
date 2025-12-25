@@ -90,7 +90,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
                         android:layout_width="100dp"
@@ -112,6 +113,62 @@
                         android:backgroundTint="#FFEBEE"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"/>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="100dp"
+                        android:layout_height="wrap_content"
+                        android:text="Создал:"
+                        android:textSize="13sp"
+                        android:textColor="#666"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/tvTaskCreatedBy"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="username"
+                        android:textSize="13sp"
+                        android:textColor="#333"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutCompletedBy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="100dp"
+                        android:layout_height="wrap_content"
+                        android:text="Закрыл:"
+                        android:textSize="13sp"
+                        android:textColor="#666"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/tvTaskCompletedBy"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="username"
+                        android:textSize="13sp"
+                        android:textColor="#4CAF50"
+                        android:textStyle="bold"/>
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -165,26 +222,34 @@
             <EditText
                 android:id="@+id/etNewComment"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:hint="Добавить комментарий..."
                 android:background="@drawable/rounded_background"
                 android:backgroundTint="#F5F5F5"
-                android:padding="12dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:minHeight="48dp"
                 android:maxLines="3"
                 android:inputType="textCapSentences|textMultiLine"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp"
+                android:textSize="14sp"/>
 
             <Button
                 android:id="@+id/btnAddComment"
                 android:layout_width="wrap_content"
-                android:layout_height="56dp"
+                android:layout_height="48dp"
                 android:text="Отправить"
                 android:textSize="14sp"
                 android:backgroundTint="#4CAF50"
                 app:cornerRadius="12dp"
                 android:paddingHorizontal="20dp"/>
         </LinearLayout>
+
+
+
+
     </LinearLayout>
 </ScrollView>

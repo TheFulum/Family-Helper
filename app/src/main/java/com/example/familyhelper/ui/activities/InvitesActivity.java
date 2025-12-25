@@ -122,8 +122,12 @@ public class InvitesActivity extends AppCompatActivity {
                                             .update("pendingInvites", pendingInvites);
                                 }
 
+                                long joinedAt = System.currentTimeMillis();
                                 db.collection("users").document(currentUserId)
-                                        .update("familyId", invite.getFamilyId());
+                                        .update(
+                                                "familyId", invite.getFamilyId(),
+                                                "joinedFamilyAt", joinedAt
+                                        );
 
                                 db.collection("familyInvites").document(invite.getInviteId())
                                         .update("status", "accepted");

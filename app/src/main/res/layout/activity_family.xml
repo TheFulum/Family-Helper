@@ -10,7 +10,8 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white">
+        android:background="@android:color/white"
+        android:fitsSystemWindows="true">
 
         <androidx.appcompat.widget.Toolbar
             android:layout_width="match_parent"
@@ -22,6 +23,7 @@
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/baseline_arrow_back_24"
+                android:contentDescription="Назад"
                 app:tint="@color/black" />
 
             <TextView
@@ -125,6 +127,17 @@
                 android:backgroundTint="#4CAF50"
                 app:cornerRadius="12dp"
                 android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/btnDeleteFamily"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Удалить семью"
+                android:textSize="16sp"
+                android:backgroundTint="#FF5722"
+                app:cornerRadius="12dp"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"/>
 
             <Button
                 android:id="@+id/btnLeaveFamily"

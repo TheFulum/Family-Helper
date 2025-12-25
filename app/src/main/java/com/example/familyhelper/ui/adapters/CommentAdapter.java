@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.familyhelper.R;
 import com.example.familyhelper.data.models.Comment;
+import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
@@ -15,9 +16,11 @@ import java.util.Locale;
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
 
     private List<Comment> commentList;
+    private FirebaseFirestore db;
 
     public CommentAdapter(List<Comment> commentList) {
         this.commentList = commentList;
+        this.db = FirebaseFirestore.getInstance();
     }
 
     @NonNull
@@ -31,9 +34,37 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     public void onBindViewHolder(@NonNull CommentViewHolder holder, int position) {
         Comment comment = commentList.get(position);
         holder.tvCommentText.setText(comment.getText());
-        holder.tvCommentUser.setText("User: " + comment.getUserId());
+
+        // Форматируем время
         String time = new SimpleDateFormat("HH:mm dd.MM.yy", Locale.getDefault()).format(comment.getTimestamp());
         holder.tvCommentTime.setText(time);
+
+        // Загружаем имя пользователя
+        loadUserName(comment.getUserId(), holder.tvCommentUser);
+    }
+
+    private void loadUserName(String userId, TextView textView) {
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String username = doc.getString("username");
+                        String name = doc.getString("name");
+
+                        // Отображаем @username если есть, иначе имя
+                        if (username != null && !username.isEmpty()) {
+                            textView.setText("@" + username);
+                        } else if (name != null && !name.isEmpty()) {
+                            textView.setText(name);
+                        } else {
+                            textView.setText("Пользователь");
+                        }
+                    } else {
+                        textView.setText("Пользователь");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    textView.setText("Пользователь");
+                });
     }
 
     @Override

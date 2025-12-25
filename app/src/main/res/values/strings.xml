@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">FamilyHelper</string>
     <string name="username_placeholder">username</string>
+
+    <string name="notifications">Уведомления</string>
+    <string name="family">Семья</string>
+    <string name="profile">Профиль</string>
+
+    <string name="transfer_ownership">Передать права главы</string>
+    <string name="remove_member">Удалить из семьи</string>
+    <string name="delete_family">Удалить семью</string>
+    <string name="leave_family">Покинуть семью</string>
 </resources>

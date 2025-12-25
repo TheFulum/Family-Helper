@@ -11,6 +11,7 @@ public class Task {
     private String date;
     private String familyId;
     private String createdBy;
+    private long createdAt;
 
     public Task() {}
 
@@ -24,6 +25,7 @@ public class Task {
         this.createdBy = createdBy;
         this.isCompleted = false;
         this.completedBy = null;
+        this.createdAt = System.currentTimeMillis();
     }
 
     public String getTaskId() { return taskId; }
@@ -55,4 +57,7 @@ public class Task {
 
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 }

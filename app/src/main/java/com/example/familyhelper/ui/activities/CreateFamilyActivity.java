@@ -88,8 +88,12 @@ public class CreateFamilyActivity extends AppCompatActivity {
                     db.collection("families").document(familyId)
                             .update("familyId", familyId);
 
+                    long joinedAt = System.currentTimeMillis();
                     db.collection("users").document(currentUserId)
-                            .update("familyId", familyId)
+                            .update(
+                                    "familyId", familyId,
+                                    "joinedFamilyAt", joinedAt
+                            )
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(this, "Семья создана!", Toast.LENGTH_SHORT).show();
                                 startActivity(new Intent(this, MainActivity.class));
