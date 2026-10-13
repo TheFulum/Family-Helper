@@ -25,3 +25,8 @@ app/google-services.json
 
 # Custom App Configuration File
 app/src/main/java/com/example/FamilyHelper/config/AppConfig.java
+
+# Build outputs
+/app/release/
+*.apk
+*.aab
